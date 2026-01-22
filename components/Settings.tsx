@@ -75,7 +75,7 @@ const Settings: React.FC<SettingsProps> = ({ onClose }) => {
                             </button>
                         </div>
                         <p className="mt-2 text-xs text-gray-500">
-                            Get your free API key from{' '}
+                            Get your API key from{' '}
                             <a
                                 href="https://aistudio.google.com/app/apikey"
                                 target="_blank"
@@ -85,6 +85,20 @@ const Settings: React.FC<SettingsProps> = ({ onClose }) => {
                                 Google AI Studio
                             </a>
                         </p>
+                    </div>
+
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                        <div className="flex items-start">
+                            <svg className="w-5 h-5 text-yellow-600 mt-0.5 mr-2 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                                <line x1="12" y1="9" x2="12" y2="13" />
+                                <line x1="12" y1="17" x2="12.01" y2="17" />
+                            </svg>
+                            <div className="text-xs text-yellow-800">
+                                <p className="font-semibold mb-1">Security Notice</p>
+                                <p>Your API key will be stored in plain text in your browser's local storage. Anyone with access to your browser can read it. Never save your API key on public, shared, or untrusted devices.</p>
+                            </div>
+                        </div>
                     </div>
 
                     <div className="flex space-x-3">

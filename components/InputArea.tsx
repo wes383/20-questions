@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 
 interface InputAreaProps {
     onSubmit: (text: string) => void;
@@ -14,6 +14,16 @@ const SendIcon: React.FC<{className?: string}> = ({className}) => (
 
 const InputArea: React.FC<InputAreaProps> = ({ onSubmit, disabled }) => {
     const [text, setText] = useState('');
+    const inputRef = useRef<HTMLInputElement>(null);
+
+    useEffect(() => {
+        if (!disabled && inputRef.current) {
+            const timer = setTimeout(() => {
+                inputRef.current?.focus();
+            }, 100);
+            return () => clearTimeout(timer);
+        }
+    }, [disabled]);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -23,12 +33,20 @@ const InputArea: React.FC<InputAreaProps> = ({ onSubmit, disabled }) => {
         }
     };
 
+    const handleInputClick = () => {
+        if (!disabled && inputRef.current) {
+            inputRef.current.focus();
+        }
+    };
+
     return (
         <form onSubmit={handleSubmit} className="flex items-center space-x-3 py-2">
             <input
+                ref={inputRef}
                 type="text"
                 value={text}
                 onChange={(e) => setText(e.target.value)}
+                onClick={handleInputClick}
                 disabled={disabled}
                 placeholder="Type your question or guess..."
                 className="flex-1 w-full bg-white border border-gray-300 text-gray-900 rounded-full py-3 px-5 focus:outline-none focus:ring-1 focus:ring-gray-300 disabled:opacity-50 transition-colors"

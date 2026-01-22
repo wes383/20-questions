@@ -1,6 +1,6 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { type GeminiResponse } from '../types';
-import { dailyItems, DEFAULT_ITEM, itemDetails } from '../items';
+import { items, DEFAULT_ITEM, itemDetails } from '../items';
 
 function getApiKey(): string {
     const userKey = localStorage.getItem('gemini_api_key');
@@ -19,11 +19,16 @@ function getAI(): GoogleGenAI {
     return new GoogleGenAI({ apiKey });
 }
 
+function getDailyIndex(): number {
+    const today = new Date();
+    const epoch = new Date('2025-01-01');
+    const daysSinceEpoch = Math.floor((today.getTime() - epoch.getTime()) / (1000 * 60 * 60 * 24));
+    return daysSinceEpoch % items.length;
+}
+
 export function startNewGame(): Promise<string> {
-    const today = new Date().toISOString().split('T')[0];
-
-    const secretItem = dailyItems[today] || DEFAULT_ITEM;
-
+    const index = getDailyIndex();
+    const secretItem = items[index] || DEFAULT_ITEM;
     return Promise.resolve(secretItem);
 }
 

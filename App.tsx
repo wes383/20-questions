@@ -17,7 +17,10 @@ const App: React.FC = () => {
     const [gameState, setGameState] = useState<GameState>(GameState.STARTING);
     const [secretItem, setSecretItem] = useState<string>('');
     const [displayText, setDisplayText] = useState<string>('');
-    const [questionCount, setQuestionCount] = useState<number>(0);
+    const [questionCount, setQuestionCount] = useState<number>(() => {
+        const saved = localStorage.getItem('questionCount');
+        return saved ? parseInt(saved, 10) : 0;
+    });
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [hasPlayedToday, setHasPlayedToday] = useState<boolean>(false);
     const [hint, setHint] = useState<string>('');
@@ -26,12 +29,15 @@ const App: React.FC = () => {
     const [showSettings, setShowSettings] = useState<boolean>(false);
     const [hasApiKey, setHasApiKey] = useState<boolean>(false);
 
-    const initialMessage = "I'm thinking of something... Ask me up to 20 yes/no questions to guess what it is!";
+    const initialMessage = "I'm thinking of something... Ask me up to 30 yes/no questions to guess what it is!";
 
     const handleNewGame = useCallback(async () => {
         setIsLoading(true);
         setGameState(GameState.STARTING);
         setQuestionCount(0);
+        localStorage.setItem('questionCount', '0');
+        const today = new Date().toISOString().split('T')[0];
+        localStorage.setItem('currentGameDate', today);
         setDisplayText(initialMessage);
         setHint('');
         setIsHintRevealed(false);
@@ -56,7 +62,7 @@ const App: React.FC = () => {
             return !!apiKey;
         };
 
-        const checkPlayStatus = () => {
+        const checkPlayStatus = async () => {
             if (!checkApiKey()) {
                 setDisplayText("Welcome to 20 Questions!\nPlease configure your API key to start playing.");
                 setIsLoading(false);
@@ -65,14 +71,30 @@ const App: React.FC = () => {
 
             const today = new Date().toISOString().split('T')[0];
             const lastPlayed = localStorage.getItem('lastPlayedDate');
+            const savedGameDate = localStorage.getItem('currentGameDate');
 
             if (lastPlayed === today) {
                 setHasPlayedToday(true);
                 setDisplayText("You've already played today.\nCome back tomorrow for a new word!");
                 setGameState(GameState.LOST);
                 setIsLoading(false);
+            } else if (savedGameDate === today) {
+                setHasPlayedToday(false);
+                setIsLoading(true);
+                try {
+                    const savedItem = await startNewGame();
+                    setSecretItem(savedItem);
+                    setGameState(GameState.PLAYING);
+                    setDisplayText(initialMessage);
+                } catch (error) {
+                    console.error("Failed to resume game:", error);
+                    setDisplayText("Sorry, I'm having trouble thinking of something right now. Please try again later.");
+                } finally {
+                    setIsLoading(false);
+                }
             } else {
                 setHasPlayedToday(false);
+                localStorage.setItem('currentGameDate', today);
                 handleNewGame();
             }
         };
@@ -85,12 +107,15 @@ const App: React.FC = () => {
 
         setIsLoading(true);
         setDisplayText('');
-        const newQuestionCount = questionCount + 1;
-        setQuestionCount(newQuestionCount);
 
         try {
             const result = await processPlayerInput(secretItem, inputText);
-            const isGameOver = result.type === 'guess_correct' || newQuestionCount >= 20;
+            
+            const newQuestionCount = questionCount + 1;
+            setQuestionCount(newQuestionCount);
+            localStorage.setItem('questionCount', newQuestionCount.toString());
+            
+            const isGameOver = result.type === 'guess_correct' || newQuestionCount >= 30;
 
             if (isGameOver) {
                 const today = new Date().toISOString().split('T')[0];
@@ -101,7 +126,7 @@ const App: React.FC = () => {
             if (result.type === 'guess_correct') {
                 setDisplayText(`Yes! You got it!\nThe secret word was "${secretItem}".`);
                 setGameState(GameState.WON);
-            } else if (newQuestionCount >= 20) {
+            } else if (newQuestionCount >= 30) {
                 setDisplayText(`You've run out of questions!\nThe answer was: ${secretItem}`);
                 setGameState(GameState.LOST);
             } else {
@@ -110,6 +135,7 @@ const App: React.FC = () => {
         } catch (error) {
             console.error("Error processing player input:", error);
             setDisplayText("I'm having a bit of trouble responding. Please try asking again.");
+            // Don't increment question count on error
         } finally {
             setIsLoading(false);
         }
@@ -150,7 +176,7 @@ const App: React.FC = () => {
 
             {!isDailyLockoutMessage && !(isLoading && !displayText) && hasApiKey && (
                 <div className="absolute top-4 right-4 sm:top-6 sm:right-6 bg-gray-200 text-gray-700 font-semibold rounded-full px-4 py-1.5 text-sm z-10 animate-fade-in">
-                    Guesses: {questionCount} / 20
+                    Guesses: {questionCount} / 30
                 </div>
             )}
 
@@ -164,7 +190,7 @@ const App: React.FC = () => {
                                 I'm thinking of something...
                             </p>
                             <p className="mt-4 text-xl sm:text-2xl lg:text-3xl text-gray-600">
-                                Ask me up to 20 yes/no questions to guess what it is!
+                                Ask me up to 30 yes/no questions to guess what it is!
                             </p>
                         </div>
                     ) : (
@@ -230,8 +256,7 @@ const App: React.FC = () => {
                     const hadKey = hasApiKey;
                     setHasApiKey(!!apiKey);
                     
-                    // If user just added a key, start the game
-                    if (!hadKey && apiKey) {
+                    if (!hadKey && apiKey && questionCount === 0) {
                         handleNewGame();
                     }
                 }} />
